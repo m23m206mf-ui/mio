@@ -954,25 +954,194 @@
   <script>
     const $ = (s,el=document)=>el.querySelector(s);
     const $$ = (s,el=document)=>Array.from(el.querySelectorAll(s));
-    const storeKey = 'crb.books.real.v1';
+    const storeKey = 'crb.books.real.v2';
     const couponKey = 'crb.coupons.v1';
     const tosKey = 'crb.tos.agreed.v2';
     const pickupKey = 'crb.pickups.v1';
     const bizKey = 'crb.biz.v1';
     const buybackIndexKey = 'crb.buybackIndex.v1';
-    let 
+    let books = [
+  {
+    "title": "1からの経営学",
+    "author": "加護野忠男・吉村典久",
+    "category": "教科書",
+    "condition": "良い",
+    "price": 2400,
+    "seller": "経営学部",
+    "contact": "@seller1",
+    "image": "img/keieigaku.jpg",
+    "description": "経営学の基本を体系的に学べる入門書。"
+  },
+  {
+    "title": "1からのデジタル・マーケティング",
+    "author": "西川英彦・澁谷覚",
+    "category": "教科書",
+    "condition": "良い",
+    "price": 2400,
+    "seller": "情報理工学部",
+    "contact": "@seller2",
+    "image": "img/digital-marketing.jpg",
+    "description": "デジタル時代のマーケティング手法を基礎から解説する定番テキスト。"
+  },
+  {
+    "title": "1からの流通論",
+    "author": "石原武政ほか",
+    "category": "教科書",
+    "condition": "良い",
+    "price": 2400,
+    "seller": "経営学部",
+    "contact": "@seller3",
+    "image": "img/ryutsuron.jpg",
+    "description": "流通の仕組みと基礎理論を身近な事例から解説。"
+  },
+  {
+    "title": "1からの病院経営",
+    "author": "木村憲洋ほか",
+    "category": "教科書",
+    "condition": "良い",
+    "price": 2400,
+    "seller": "生命科学部",
+    "contact": "@seller4",
+    "image": "img/byoin-keiei.jpg",
+    "description": "医療機関の経営を基礎から学べる実践入門書。"
+  },
+  {
+    "title": "1からのデータ分析",
+    "author": "古川一郎・上原渉",
+    "category": "教科書",
+    "condition": "良い",
+    "price": 2400,
+    "seller": "情報理工学部",
+    "contact": "@seller5",
+    "image": "img/data-bunseki.jpg",
+    "description": "社会人の実例を通してデータ分析を体験的に学ぶ教科書。"
+  },
+  {
+    "title": "よくわかる教育心理学 第2版",
+    "author": "中澤潤",
+    "category": "教科書",
+    "condition": "良い",
+    "price": 2200,
+    "seller": "教育学部",
+    "contact": "@seller6",
+    "image": "img/kyoiku-shinri.jpg",
+    "description": "教育心理学の基本概念を丁寧に解説した入門書。"
+  }
+];
+    let editingId = null;
+
+    function uid(){return Math.random().toString(36).slice(2)+Date.now().toString(36)}
+    function fmtJPY(n){ return new Intl.NumberFormat('ja-JP').format(Math.round(n||0)) }
+    function avg(arr){ return arr.reduce((s,n)=>s+n,0) / (arr.length||1) }
+    function median(arr){ if(arr.length===0) return 0; const a = arr.slice().sort((x,y)=>x-y); const m = Math.floor(a.length/2); return a.length%2 ? a[m] : (a[m-1]+a[m])/2; }
+    function hashCode(str){ let h=0; for(let i=0;i<str.length;i++){ h = (h<<5)-h + str.charCodeAt(i); h|=0 } return Math.abs(h) }
+    function coverFromTitle(title='BOOK', author=''){
+      const seed = hashCode(title+author);
+      const hue = seed % 360, hue2 = (hue+40)%360;
+      const esc = s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const svg = `
+        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 900'>
+          <defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
+            <stop offset='0%' stop-color='hsl(${hue},60%,60%)'/>
+            <stop offset='100%' stop-color='hsl(${hue2},60%,50%)'/>
+          </linearGradient></defs>
+          <rect width='1200' height='900' fill='url(#g)'/>
+          <rect x='80' y='80' width='1040' height='740' rx='28' ry='28' fill='rgba(255,255,255,0.22)'/>
+          <text x='100' y='360' font-family='Hiragino Kaku Gothic ProN, Noto Sans JP, sans-serif' font-weight='800' font-size='96' fill='white'>${esc(title).slice(0,18)}</text>
+          <text x='100' y='450' font-family='Hiragino Kaku Gothic ProN, Noto Sans JP, sans-serif' font-weight='700' font-size='52' fill='rgba(255,255,255,0.9)'>${esc(author||'').slice(0,22)}</text>
+          <text x='100' y='540' font-family='Menlo, monospace' font-size='28' fill='rgba(255,255,255,0.85)'>Campus Reuse Books</text>
+        </svg>`;
+      return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+    }
+
+    const condFactorBuyback = { '新品同様': 0.60, '良い': 0.45, '可': 0.25 };
+    const condFactorList = { '新品同様': 0.78, '良い': 0.62, '可': 0.42 };
+    function findListingMatches(query){
+      const q = (query||'').trim().toLowerCase(); if(!q) return [];
+      return books.filter(b => [b.title, b.author].join('\n').toLowerCase().includes(q));
+    }
+    function baseFromListingOrMSRP(query){
+      const matches = findListingMatches(query);
+      if(matches.length){ return { base: median(matches.map(m=>m.price)), count: matches.length, source: 'listing_median' }; }
+      const q = (query||'').trim().toLowerCase();
+      const hit = buybackIndex.find(x => x.keyword && q.includes(String(x.keyword).toLowerCase()) );
+      if(hit) return { base: hit.msrp, count: 0, source: 'msrp' };
+      return null;
+    }
+    function estimateBuyback(base, condition){
+      const k = condFactorBuyback[condition] ?? condFactorBuyback['良い'];
+      const mid = base * k; return { mid, low: mid*0.85, high: mid*1.15 };
+    }
+    function recommendListPrice(query, condition){
+      const base = baseFromListingOrMSRP(query); if(!base) return null;
+      const listK = condFactorList[condition] ?? condFactorList['良い'];
+      const buyback = estimateBuyback(base.base, condition).mid;
+      let rec = base.base * listK; const floor = buyback * 1.10; if(rec < floor) rec = Math.max(rec, floor);
+      return { source: base.source, base: base.base, count: base.count, rec: rec, range: { low: rec*0.9, high: rec*1.1 }, buybackMid: buyback };
+    }
+
+    // coupons
+    const couponKeyLS = couponKey;
+    function loadCoupons(){ try{ coupons = JSON.parse(localStorage.getItem(couponKeyLS) || '[]') }catch{ coupons=[] } }
+    function saveCoupons(){ localStorage.setItem(couponKeyLS, JSON.stringify(coupons)) }
+    function applyCoupon(code, price, category){
+      code = (code||'').trim(); if(!code) return {price, applied:null};
+      const now = new Date().toISOString().slice(0,10);
+      const c = coupons.find(x=>x.code===code);
+      if(!c) return {price, applied:null};
+      if(c.until && c.until < now) return {price, applied:null};
+      if(c.min && price < c.min) return {price, applied:null};
+      if(c.cat && c.cat.length){
+        if(!c.cat.includes(category)) return {price, applied:null};
+      }
+      let newPrice = price;
+      if(c.type==='pct') newPrice = Math.max(0, Math.round(price*(100 - c.value)/100));
+      else newPrice = Math.max(0, price - c.value);
+      return {price:newPrice, applied:c};
+    }
+
+    // pickups / biz
+    function loadBiz(){ try{ biz = JSON.parse(localStorage.getItem(bizKey) || '{}') }catch{ biz={} } }
+    function saveBiz(){ localStorage.setItem(bizKey, JSON.stringify(biz)) }
+    function renderTokusho(){
+      const {name, owner, addr, contact, url, kobutsu} = biz;
+      $('#tokusho').innerHTML = `
+        <div><strong>販売業者</strong>：${name||'-'}</div>
+        <div><strong>運営責任者</strong>：${owner||'-'}</div>
+        <div><strong>所在地</strong>：${addr||'-'}</div>
+        <div><strong>連絡先</strong>：${contact||'-'}</div>
+        <div><strong>URL</strong>：${url||'-'}</div>
+        <div><strong>古物商許可番号</strong>：${kobutsu||'（必要に応じて申請）'}</div>
+        <div><strong>販売価格</strong>：各商品ページに税込価格を表示</div>
+        <div><strong>商品代金以外の必要料金</strong>：対面引渡し原則／配送時の送料は実費</div>
+        <div><strong>代金の支払方法・時期</strong>：現金・キャッシュレス等、受け渡し時に支払い</div>
+        <div><strong>引渡時期</strong>：合意日時に受け渡し</div>
+        <div><strong>返品・キャンセル</strong>：原則不可。ただし合意により7日以内の返品可（状態相違等）</div>
+      `;
+    }
+    function loadPickups(){ try{ pickups = JSON.parse(localStorage.getItem(pickupKey) || '[]') }catch{ pickups=[] } }
+    function savePickups(){ localStorage.setItem(pickupKey, JSON.stringify(pickups)) }
+    function ensurePickupOptions(){
+      const sel = $('#pickup'); const olds = new Set(Array.from(sel.options).map(o=>o.value));
+      pickups.forEach(p=>{ if(!olds.has(p)){ const opt = document.createElement('option'); opt.value=p; opt.textContent=p; sel.appendChild(opt); } });
+    }
+
+    // data IO
+    function load(){
+      try{ books = JSON.parse(localStorage.getItem(storeKey) || '[]') }catch{ books=[] }
+      if(!books || books.length===0){
         books = [
           {
             id: uid(),
-            title: '1からの経営学 第2版',
-            author: '加護野忠男・吉村典久 編著',
+            title: 'ドリルと演習シリーズ 基礎数学',
+            author: '',
             category: '教科書',
             condition: '良い',
-            price: 1800,
-            seller: '経営学部',
-            contact: '@sample_mgmt',
-            image: 'img/keieigaku.jpg',
-            description: '経営学の基本概念を体系的に学べる入門テキスト。',
+            price: 1463,
+            seller: '理学部・工学部 共通',
+            contact: '@sample_math',
+            image: '',
+            description: '理大のリメディアル講座（数学）や基礎数学科目で用いられる定番テキスト。',
             pickup: '図書館前',
             coupon: '',
             createdAt: Date.now()-1000*60*60*24*3,
@@ -980,15 +1149,15 @@
           },
           {
             id: uid(),
-            title: '1からのデジタル・マーケティング',
-            author: '西川英彦・滝谷覚 編著',
+            title: 'アクセスノート 化学基礎 新課程版',
+            author: '',
             category: '教科書',
             condition: '良い',
-            price: 1900,
-            seller: '経営学部',
-            contact: '@sample_digital',
-            image: 'img/digital-marketing.jpg',
-            description: 'デジタル時代のマーケティング基礎を事例とともに学べるテキスト。',
+            price: 617,
+            seller: '理学部・生命科学部',
+            contact: '@sample_chem',
+            image: '',
+            description: '化学基礎の復習・学習に使われる代表的な入門教科書。',
             pickup: '学生会館',
             coupon: '',
             createdAt: Date.now()-1000*60*60*24*2,
@@ -996,15 +1165,15 @@
           },
           {
             id: uid(),
-            title: '1からの流通論 第2版',
-            author: '石原武政・竹村正明・細井謙一 編著',
+            title: 'サイエンスビュー 化学総合資料（四訂版）',
+            author: '',
             category: '教科書',
             condition: '良い',
-            price: 1900,
-            seller: '経営学部',
-            contact: '@sample_distribution',
-            image: 'img/ryutsuron.jpg',
-            description: 'リアルとデジタルの両方を視野に入れた流通の仕組みを学ぶテキスト。',
+            price: 1463,
+            seller: '理学部 化学系',
+            contact: '@sample_chem2',
+            image: '',
+            description: '理大の化学総合で多く利用される資料集。',
             pickup: '図書館前',
             coupon: '',
             createdAt: Date.now()-1000*60*60*24,
@@ -1012,15 +1181,15 @@
           },
           {
             id: uid(),
-            title: '1からの病院経営',
-            author: '木村憲洋・的場匡亮・川上智子 編著',
-            category: '専門書',
+            title: '物理学基礎 第5版 新装版 Web動画付き',
+            author: '',
+            category: '教科書',
             condition: '良い',
-            price: 2000,
-            seller: '医療・福祉系',
-            contact: '@sample_hospital',
-            image: 'img/byoin-keiei.jpg',
-            description: '医療現場のマネジメントや病院経営の基礎を学ぶためのテキスト。',
+            price: 2508,
+            seller: '工学部 1年',
+            contact: '@sample_phys',
+            image: '',
+            description: '工学部1年の物理学Ⅱで指定される基礎物理の教科書。',
             pickup: 'C1号館前',
             coupon: '',
             createdAt: Date.now()-1000*60*60*6,
@@ -1028,34 +1197,82 @@
           },
           {
             id: uid(),
-            title: '1からのデータ分析',
-            author: '古川一郎・上原渉 編著',
+            title: '専門基礎科目 微分積分',
+            author: '',
             category: '教科書',
             condition: '良い',
-            price: 2000,
-            seller: '情報理工学部',
-            contact: '@sample_data',
-            image: 'img/data-bunseki.jpg',
-            description: '若手社会人のストーリーを通してデータ分析の考え方を学ぶ体験型テキスト。',
-            pickup: '情報系実験室前',
+            price: 2508,
+            seller: '理学部・工学部',
+            contact: '@sample_calc',
+            image: '',
+            description: '専門基礎科目（微分積分１）として利用される培風館の教科書。',
+            pickup: '図書館前',
             coupon: '',
-            createdAt: Date.now()-1000*60*60*3,
+            createdAt: Date.now()-1000*60*30,
             sold: false
           },
           {
             id: uid(),
-            title: 'よくわかる教育心理学 第2版',
-            author: '中澤潤 編著',
+            title: '線形代数 例とポイント',
+            author: '',
             category: '教科書',
             condition: '良い',
-            price: 1800,
-            seller: '教育学部',
-            contact: '@sample_psy',
-            image: 'img/kyoiku-shinri.jpg',
-            description: '教育現場で役立つ心理学の基礎をコンパクトにまとめた入門書。',
+            price: 1672,
+            seller: '理学部 応用数学科',
+            contact: '@sample_linalg',
+            image: '',
+            description: '理大の線形代数の授業でよく使われる定番教科書。',
+            pickup: '図書館前',
+            coupon: '',
+            createdAt: Date.now()-1000*60*20,
+            sold: false
+          },
+          {
+            id: uid(),
+            title: '新・コンピュータ解体新書［第2版］',
+            author: '',
+            category: '専門書',
+            condition: '良い',
+            price: 1724,
+            seller: '工学部 情報工学科',
+            contact: '@sample_ice',
+            image: '',
+            description: '「情報工学入門」などで定番となっている教科書。',
+            pickup: '情報系実験室前',
+            coupon: '',
+            createdAt: Date.now()-1000*60*10,
+            sold: false
+          },
+          {
+            id: uid(),
+            title: '現代教育の理論と実践 改訂版',
+            author: '',
+            category: '教科書',
+            condition: '良い',
+            price: 2926,
+            seller: '教育学部 中等教育学科',
+            contact: '@sample_edu',
+            image: '',
+            description: '教育学部の基礎科目で使われる主要教科書。',
             pickup: '教育学部棟前',
             coupon: '',
-            createdAt: Date.now()-1000*60*60,
+            createdAt: Date.now()-1000*60*5,
+            sold: false
+          },
+          {
+            id: uid(),
+            title: '基礎 有機化学［新訂版］',
+            author: '',
+            category: '教科書',
+            condition: '良い',
+            price: 1986,
+            seller: '生命科学部',
+            contact: '@sample_bio',
+            image: '',
+            description: '生命科学部・化学系の専門教育科目で利用される有機化学基礎テキスト。',
+            pickup: '生命科学部棟ロビー',
+            coupon: '',
+            createdAt: Date.now()-1000*60*3,
             sold: false
           }
         ];
