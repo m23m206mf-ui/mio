@@ -954,80 +954,13 @@
   <script>
     const $ = (s,el=document)=>el.querySelector(s);
     const $$ = (s,el=document)=>Array.from(el.querySelectorAll(s));
-    const storeKey = 'crb.books.real.v2';
+    const storeKey = 'crb.books.real.v1';
     const couponKey = 'crb.coupons.v1';
     const tosKey = 'crb.tos.agreed.v2';
     const pickupKey = 'crb.pickups.v1';
     const bizKey = 'crb.biz.v1';
     const buybackIndexKey = 'crb.buybackIndex.v1';
-    let books = [
-  {
-    "title": "1からの経営学",
-    "author": "加護野忠男・吉村典久",
-    "category": "教科書",
-    "condition": "良い",
-    "price": 2400,
-    "seller": "経営学部",
-    "contact": "@seller1",
-    "image": "img/keieigaku.jpg",
-    "description": "経営学の基本を体系的に学べる入門書。"
-  },
-  {
-    "title": "1からのデジタル・マーケティング",
-    "author": "西川英彦・澁谷覚",
-    "category": "教科書",
-    "condition": "良い",
-    "price": 2400,
-    "seller": "情報理工学部",
-    "contact": "@seller2",
-    "image": "img/digital-marketing.jpg",
-    "description": "デジタル時代のマーケティング手法を基礎から解説する定番テキスト。"
-  },
-  {
-    "title": "1からの流通論",
-    "author": "石原武政ほか",
-    "category": "教科書",
-    "condition": "良い",
-    "price": 2400,
-    "seller": "経営学部",
-    "contact": "@seller3",
-    "image": "img/ryutsuron.jpg",
-    "description": "流通の仕組みと基礎理論を身近な事例から解説。"
-  },
-  {
-    "title": "1からの病院経営",
-    "author": "木村憲洋ほか",
-    "category": "教科書",
-    "condition": "良い",
-    "price": 2400,
-    "seller": "生命科学部",
-    "contact": "@seller4",
-    "image": "img/byoin-keiei.jpg",
-    "description": "医療機関の経営を基礎から学べる実践入門書。"
-  },
-  {
-    "title": "1からのデータ分析",
-    "author": "古川一郎・上原渉",
-    "category": "教科書",
-    "condition": "良い",
-    "price": 2400,
-    "seller": "情報理工学部",
-    "contact": "@seller5",
-    "image": "img/data-bunseki.jpg",
-    "description": "社会人の実例を通してデータ分析を体験的に学ぶ教科書。"
-  },
-  {
-    "title": "よくわかる教育心理学 第2版",
-    "author": "中澤潤",
-    "category": "教科書",
-    "condition": "良い",
-    "price": 2200,
-    "seller": "教育学部",
-    "contact": "@seller6",
-    "image": "img/kyoiku-shinri.jpg",
-    "description": "教育心理学の基本概念を丁寧に解説した入門書。"
-  }
-];
+    let books = [], coupons=[], pickups=[], biz={}, buybackIndex=[];
     let editingId = null;
 
     function uid(){return Math.random().toString(36).slice(2)+Date.now().toString(36)}
@@ -1130,153 +1063,105 @@
     function load(){
       try{ books = JSON.parse(localStorage.getItem(storeKey) || '[]') }catch{ books=[] }
       if(!books || books.length===0){
-        books = [
-          {
-            id: uid(),
-            title: 'ドリルと演習シリーズ 基礎数学',
-            author: '',
-            category: '教科書',
-            condition: '良い',
-            price: 1463,
-            seller: '理学部・工学部 共通',
-            contact: '@sample_math',
-            image: '',
-            description: '理大のリメディアル講座（数学）や基礎数学科目で用いられる定番テキスト。',
-            pickup: '図書館前',
-            coupon: '',
-            createdAt: Date.now()-1000*60*60*24*3,
-            sold: false
-          },
-          {
-            id: uid(),
-            title: 'アクセスノート 化学基礎 新課程版',
-            author: '',
-            category: '教科書',
-            condition: '良い',
-            price: 617,
-            seller: '理学部・生命科学部',
-            contact: '@sample_chem',
-            image: '',
-            description: '化学基礎の復習・学習に使われる代表的な入門教科書。',
-            pickup: '学生会館',
-            coupon: '',
-            createdAt: Date.now()-1000*60*60*24*2,
-            sold: false
-          },
-          {
-            id: uid(),
-            title: 'サイエンスビュー 化学総合資料（四訂版）',
-            author: '',
-            category: '教科書',
-            condition: '良い',
-            price: 1463,
-            seller: '理学部 化学系',
-            contact: '@sample_chem2',
-            image: '',
-            description: '理大の化学総合で多く利用される資料集。',
-            pickup: '図書館前',
-            coupon: '',
-            createdAt: Date.now()-1000*60*60*24,
-            sold: false
-          },
-          {
-            id: uid(),
-            title: '物理学基礎 第5版 新装版 Web動画付き',
-            author: '',
-            category: '教科書',
-            condition: '良い',
-            price: 2508,
-            seller: '工学部 1年',
-            contact: '@sample_phys',
-            image: '',
-            description: '工学部1年の物理学Ⅱで指定される基礎物理の教科書。',
-            pickup: 'C1号館前',
-            coupon: '',
-            createdAt: Date.now()-1000*60*60*6,
-            sold: false
-          },
-          {
-            id: uid(),
-            title: '専門基礎科目 微分積分',
-            author: '',
-            category: '教科書',
-            condition: '良い',
-            price: 2508,
-            seller: '理学部・工学部',
-            contact: '@sample_calc',
-            image: '',
-            description: '専門基礎科目（微分積分１）として利用される培風館の教科書。',
-            pickup: '図書館前',
-            coupon: '',
-            createdAt: Date.now()-1000*60*30,
-            sold: false
-          },
-          {
-            id: uid(),
-            title: '線形代数 例とポイント',
-            author: '',
-            category: '教科書',
-            condition: '良い',
-            price: 1672,
-            seller: '理学部 応用数学科',
-            contact: '@sample_linalg',
-            image: '',
-            description: '理大の線形代数の授業でよく使われる定番教科書。',
-            pickup: '図書館前',
-            coupon: '',
-            createdAt: Date.now()-1000*60*20,
-            sold: false
-          },
-          {
-            id: uid(),
-            title: '新・コンピュータ解体新書［第2版］',
-            author: '',
-            category: '専門書',
-            condition: '良い',
-            price: 1724,
-            seller: '工学部 情報工学科',
-            contact: '@sample_ice',
-            image: '',
-            description: '「情報工学入門」などで定番となっている教科書。',
-            pickup: '情報系実験室前',
-            coupon: '',
-            createdAt: Date.now()-1000*60*10,
-            sold: false
-          },
-          {
-            id: uid(),
-            title: '現代教育の理論と実践 改訂版',
-            author: '',
-            category: '教科書',
-            condition: '良い',
-            price: 2926,
-            seller: '教育学部 中等教育学科',
-            contact: '@sample_edu',
-            image: '',
-            description: '教育学部の基礎科目で使われる主要教科書。',
-            pickup: '教育学部棟前',
-            coupon: '',
-            createdAt: Date.now()-1000*60*5,
-            sold: false
-          },
-          {
-            id: uid(),
-            title: '基礎 有機化学［新訂版］',
-            author: '',
-            category: '教科書',
-            condition: '良い',
-            price: 1986,
-            seller: '生命科学部',
-            contact: '@sample_bio',
-            image: '',
-            description: '生命科学部・化学系の専門教育科目で利用される有機化学基礎テキスト。',
-            pickup: '生命科学部棟ロビー',
-            coupon: '',
-            createdAt: Date.now()-1000*60*3,
-            sold: false
-          }
-        ];
-        save();
+books = [
+  {
+    id: uid(),
+    title: '1からの経営学',
+    author: '加護野忠男・吉村典久',
+    category: '教科書',
+    condition: '良い',
+    price: 2400,
+    seller: '経営学部',
+    contact: '@seller1',
+    image: 'img/keieigaku.jpg',
+    description: '経営学の基本を体系的に学べる入門書。',
+    pickup: '図書館前',
+    coupon: '',
+    createdAt: Date.now()-1000*60*60*24*3,
+    sold: false
+  },
+  {
+    id: uid(),
+    title: '1からのデジタル・マーケティング',
+    author: '西川英彦・滝谷覚',
+    category: '教科書',
+    condition: '良い',
+    price: 2400,
+    seller: '情報理工学部',
+    contact: '@seller2',
+    image: 'img/digital-marketing.jpg',
+    description: 'デジタル時代のマーケティング手法を基礎から解説する定番テキスト。',
+    pickup: '学生会館',
+    coupon: '',
+    createdAt: Date.now()-1000*60*60*24*2,
+    sold: false
+  },
+  {
+    id: uid(),
+    title: '1からの流通論',
+    author: '石原武政ほか',
+    category: '教科書',
+    condition: '良い',
+    price: 2400,
+    seller: '経営学部',
+    contact: '@seller3',
+    image: 'img/ryutsuron.jpg',
+    description: '流通の仕組みと基礎理論を身近な事例から解説。',
+    pickup: '図書館前',
+    coupon: '',
+    createdAt: Date.now()-1000*60*60*24,
+    sold: false
+  },
+  {
+    id: uid(),
+    title: '1からの病院経営',
+    author: '木村憲洋ほか',
+    category: '教科書',
+    condition: '良い',
+    price: 2400,
+    seller: '生命科学部',
+    contact: '@seller4',
+    image: 'img/byoin-keiei.jpg',
+    description: '医療機関の経営を基礎から学べる実践入門書。',
+    pickup: 'C1号館前',
+    coupon: '',
+    createdAt: Date.now()-1000*60*60*6,
+    sold: false
+  },
+  {
+    id: uid(),
+    title: '1からのデータ分析',
+    author: '古川一郎・上原渉',
+    category: '教科書',
+    condition: '良い',
+    price: 2400,
+    seller: '情報理工学部',
+    contact: '@seller5',
+    image: 'img/data-bunseki.jpg',
+    description: '社会人の実例を通してデータ分析を体験的に学ぶ教科書。',
+    pickup: '情報系実験室前',
+    coupon: '',
+    createdAt: Date.now()-1000*60*60*3,
+    sold: false
+  },
+  {
+    id: uid(),
+    title: 'よくわかる教育心理学 第2版',
+    author: '中澤潤',
+    category: '教科書',
+    condition: '良い',
+    price: 2200,
+    seller: '教育学部',
+    contact: '@seller6',
+    image: 'img/kyoiku-shinri.jpg',
+    description: '教育心理学の基本概念を丁寧に解説した入門書。',
+    pickup: '教育学部棟前',
+    coupon: '',
+    createdAt: Date.now()-1000*60*60,
+    sold: false
+  }
+];
+save();
       }
 
       if(!localStorage.getItem(pickupKey)){
