@@ -862,9 +862,14 @@
           </div>
 
           <div class="event-rsvp-mini">
-            <div class="event-rsvp-mini-title">あなたの参加メモ（この端末）</div>
-            <div class="muted" id="eventRsvpStatus">未登録</div>
-            <div class="help" style="margin-top:6px">※ クリックで端末ローカルに参加記録（名前なし）を保存します。</div>
+            <div class="event-rsvp-mini-title">参加状況（ログイン）</div>
+            <div class="muted" id="authStatus">未ログイン</div>
+            <div class="muted" id="eventRsvpStatus" style="margin-top:4px">参加記録：未登録</div>
+            <div class="actions" style="margin-top:8px">
+              <button id="openAuthBtn" type="button" class="btn ghost">ログイン / 新規登録</button>
+              <button id="logoutBtn" type="button" class="btn ghost" style="display:none">ログアウト</button>
+            </div>
+            <div class="help" style="margin-top:6px">※ このサイトはサーバーを使わないため、アカウント情報は<strong>この端末内</strong>にのみ保存されます（他端末へは引き継げません）。</div>
           </div>
         </div>
       </div>
@@ -1226,6 +1231,58 @@
           <button id="bz_save" class="btn primary">保存</button>
           <button id="bz_clear" class="btn ghost">消去</button>
         </div>
+        <button class="btn ghost" value="close">閉じる</button>
+      </div>
+    </form>
+  </dialog>
+
+
+  <!-- ログイン / 新規登録（ローカル保存） -->
+  <dialog id="auth">
+    <form method="dialog" id="authForm">
+      <div class="modal-head">
+        <strong>ログイン / 新規登録</strong>
+        <button class="btn ghost" value="close">閉じる</button>
+      </div>
+      <div class="modal-body">
+        <div class="section" style="border-style:solid">
+          <div class="muted" style="margin-bottom:8px">
+            ※ サーバー認証ではありません。入力した情報はこの端末のローカルストレージに保存されます。
+          </div>
+          <div class="row">
+            <div>
+              <label>学内ID / メール（ログインID）<br>
+                <input id="auth_id" class="input" placeholder="例：m23m206 / xxx@univ.jp" required>
+              </label>
+            </div>
+            <div>
+              <label>表示名（任意）<br>
+                <input id="auth_name" class="input" placeholder="例：たろう">
+              </label>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>パスワード<br>
+                <input id="auth_pw" class="input" type="password" placeholder="8文字以上推奨" required>
+              </label>
+            </div>
+            <div>
+              <label>パスワード（確認：新規登録時）<br>
+                <input id="auth_pw2" class="input" type="password" placeholder="新規登録の時だけ入力">
+              </label>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+            <button id="loginBtn" class="btn info" type="button">ログイン</button>
+            <button id="registerBtn" class="btn primary" type="button">新規登録</button>
+            <button id="forgetAuthBtn" class="btn" type="button" style="background:var(--danger);color:#fff">この端末のアカウントを全削除</button>
+          </div>
+          <div id="authMsg" class="help" style="margin-top:10px"></div>
+        </div>
+      </div>
+      <div class="footer">
+        <span class="note">学内・非営利プロトタイプ（ローカル保存）</span>
         <button class="btn ghost" value="close">閉じる</button>
       </div>
     </form>
@@ -1683,24 +1740,187 @@ save();
       try{ if(localStorage.getItem(tosKey)!=='1'){ $('#tos').showModal(); } }catch{}
     })();
   
-    // ===== Riverlight event: RSVP (local) + countdown (optional) =====
-    const eventKey = 'crb.event.riverlight.rsvp.v1';
+    // ===== Riverlight event: Auth (local) + RSVP + countdown (optional) =====
+    const usersKey = 'crb.auth.users.v1';
+    const sessionKey = 'crb.auth.session.v1';
+    const eventKey = 'crb.event.riverlight.rsvp.v2';
+
+    function loadUsers(){ try{ return JSON.parse(localStorage.getItem(usersKey) || '[]') }catch{ return [] } }
+    function saveUsers(v){ localStorage.setItem(usersKey, JSON.stringify(v||[])) }
+    function loadSession(){ try{ return JSON.parse(localStorage.getItem(sessionKey) || 'null') }catch{ return null } }
+    function saveSession(v){ localStorage.setItem(sessionKey, JSON.stringify(v||null)) }
+
+    function uid2(){ return Math.random().toString(36).slice(2) + Date.now().toString(36) }
+
+    async function sha256(str){
+      const enc = new TextEncoder();
+      const buf = await crypto.subtle.digest('SHA-256', enc.encode(str));
+      return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    }
+    function salt(){ return Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2) }
+
+    async function registerLocal(id, name, pw, pw2){
+      id = (id||'').trim();
+      name = (name||'').trim();
+      if(!id) throw new Error('ログインIDを入力してください。');
+      if(!pw) throw new Error('パスワードを入力してください。');
+      if(pw.length < 6) throw new Error('パスワードは6文字以上を推奨します。');
+      if(pw !== (pw2||'')) throw new Error('確認用パスワードが一致しません。');
+      const users = loadUsers();
+      if(users.some(u=>u.id === id)) throw new Error('このIDは既に登録されています。');
+      const s = salt();
+      const hash = await sha256(pw + '|' + s);
+      const u = { uid: uid2(), id, name: name || id, salt: s, hash, createdAt: Date.now() };
+      users.push(u);
+      saveUsers(users);
+      saveSession({ uid: u.uid });
+      return u;
+    }
+
+    async function loginLocal(id, pw){
+      id = (id||'').trim();
+      if(!id) throw new Error('ログインIDを入力してください。');
+      if(!pw) throw new Error('パスワードを入力してください。');
+      const users = loadUsers();
+      const u = users.find(x=>x.id === id);
+      if(!u) throw new Error('このIDは登録されていません。');
+      const hash = await sha256(pw + '|' + u.salt);
+      if(hash !== u.hash) throw new Error('パスワードが違います。');
+      saveSession({ uid: u.uid });
+      return u;
+    }
+
+    function currentUser(){
+      const s = loadSession();
+      if(!s || !s.uid) return null;
+      const users = loadUsers();
+      return users.find(u=>u.uid === s.uid) || null;
+    }
+    function logoutLocal(){ saveSession(null); }
+
+    // RSVP per user (local)
     function loadEventRsvp(){
       try{ return JSON.parse(localStorage.getItem(eventKey) || '{}') }catch{ return {} }
     }
     function saveEventRsvp(v){ localStorage.setItem(eventKey, JSON.stringify(v||{})) }
+
+    function renderAuth(){
+      const u = currentUser();
+      const el = document.getElementById('authStatus');
+      const openBtn = document.getElementById('openAuthBtn');
+      const logoutBtn = document.getElementById('logoutBtn');
+      if(el){
+        el.textContent = u ? `ログイン中：${u.name}` : '未ログイン';
+      }
+      if(openBtn) openBtn.style.display = u ? 'none' : '';
+      if(logoutBtn) logoutBtn.style.display = u ? '' : 'none';
+    }
+
     function renderEventRsvp(){
+      const u = currentUser();
       const v = loadEventRsvp();
       const el = document.getElementById('eventRsvpStatus');
+      const rsvpBtn = document.getElementById('eventRsvpBtn');
       if(!el) return;
-      if(v && v.joinedAt){
+
+      if(!u){
+        // show generic status (if any exists on this device)
+        if(v && v.joinedAt && v.userName){
+          el.textContent = `参加記録：この端末に記録あり（${v.userName}）`;
+        }else{
+          el.textContent = '参加記録：未登録';
+        }
+        if(rsvpBtn) rsvpBtn.textContent = 'ログインして参加登録';
+        return;
+      }
+
+      // logged in
+      if(v && v.joinedAt && v.userUid === u.uid){
         const d = new Date(v.joinedAt);
-        el.textContent = '参加予定として記録済み（' + d.toLocaleString('ja-JP') + '）';
+        el.textContent = `参加記録：登録済み（${d.toLocaleString('ja-JP')}）`;
+        if(rsvpBtn) rsvpBtn.textContent = '参加登録を解除';
       }else{
-        el.textContent = '未登録';
+        el.textContent = '参加記録：未登録';
+        if(rsvpBtn) rsvpBtn.textContent = '参加登録（この端末）';
       }
     }
+
+    // Auth modal wiring
+    const authDlg = document.getElementById('auth');
+    const openAuthBtn = document.getElementById('openAuthBtn');
+    if(openAuthBtn && authDlg){
+      openAuthBtn.addEventListener('click', ()=> authDlg.showModal());
+    }
+    const loginBtn = document.getElementById('loginBtn');
+    const registerBtn = document.getElementById('registerBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const msg = document.getElementById('authMsg');
+
+    function setMsg(t){ if(msg) msg.textContent = t || ''; }
+
+    if(logoutBtn){
+      logoutBtn.addEventListener('click', ()=>{
+        logoutLocal();
+        renderAuth();
+        renderEventRsvp();
+        setMsg('');
+        alert('ログアウトしました。');
+      });
+    }
+
+    if(loginBtn){
+      loginBtn.addEventListener('click', async ()=>{
+        try{
+          setMsg('');
+          const id = document.getElementById('auth_id')?.value;
+          const pw = document.getElementById('auth_pw')?.value;
+          await loginLocal(id, pw);
+          renderAuth();
+          renderEventRsvp();
+          setMsg('ログインしました。');
+          if(authDlg) authDlg.close();
+        }catch(e){
+          setMsg(e.message || String(e));
+        }
+      });
+    }
+
+    if(registerBtn){
+      registerBtn.addEventListener('click', async ()=>{
+        try{
+          setMsg('');
+          const id = document.getElementById('auth_id')?.value;
+          const name = document.getElementById('auth_name')?.value;
+          const pw = document.getElementById('auth_pw')?.value;
+          const pw2 = document.getElementById('auth_pw2')?.value;
+          await registerLocal(id, name, pw, pw2);
+          renderAuth();
+          renderEventRsvp();
+          setMsg('登録してログインしました。');
+          if(authDlg) authDlg.close();
+        }catch(e){
+          setMsg(e.message || String(e));
+        }
+      });
+    }
+
+    const forgetBtn = document.getElementById('forgetAuthBtn');
+    if(forgetBtn){
+      forgetBtn.addEventListener('click', ()=>{
+        if(!confirm('この端末に保存されたアカウント情報を全削除します。よろしいですか？')) return;
+        localStorage.removeItem(usersKey);
+        localStorage.removeItem(sessionKey);
+        // RSVPは残す（必要なら消してもOK）
+        renderAuth();
+        renderEventRsvp();
+        setMsg('削除しました。');
+      });
+    }
+
+    // RSVP button behavior (requires login)
+
     const EVENT_DATE_ISO = ''; // 例: '2026-01-20T12:00:00+09:00'  ※未定なら空のままでOK
+ = ''; // 例: '2026-01-20T12:00:00+09:00'  ※未定なら空のままでOK
     function renderCountdown(){
       const box = document.getElementById('eventCountdown');
       const timeEl = document.getElementById('eventCountdownTime');
@@ -1724,19 +1944,12 @@ save();
       timeEl.textContent = `${dd}日 ${hh}時間 ${mm}分`;
       noteEl.textContent = '※ この表示は端末の時刻を使っています。';
     }
-    const rsvpBtn = document.getElementById('eventRsvpBtn');
-    if(rsvpBtn){
-      rsvpBtn.addEventListener('click', ()=>{
-        const v = loadEventRsvp();
-        if(v && v.joinedAt){
-          if(!confirm('参加記録を解除しますか？')) return;
-          saveEventRsvp({});
-        }else{
-          saveEventRsvp({ joinedAt: Date.now() });
-        }
-        renderEventRsvp();
-      });
-    }
+
+    // initial render for event area
+    renderAuth();
+    renderEventRsvp();
+    renderCountdown();
+    setInterval(renderCountdown, 60*1000);
 
 </script>
 </body>
