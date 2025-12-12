@@ -1922,6 +1922,75 @@ renderEventRsvp();
 renderCountdown();
 setInterval(renderCountdown, 60*1000);
 
+
+    /* ===== Riverlight Event Login (local only) =====
+       - 既存機能（教科書/出品/クーポン等）には一切干渉しません
+       - 保存先：localStorage（端末・URLごと）
+    */
+    (function(){
+      const openAuthBtn = document.getElementById('openAuthBtn');
+      const logoutBtn   = document.getElementById('logoutBtn');
+      const authStatus  = document.getElementById('authStatus');
+      const rsvpBtn     = document.getElementById('eventRsvpBtn');
+      const rsvpStatus  = document.getElementById('eventRsvpStatus');
+
+      // 対象要素が無い場合は何もしない（安全策）
+      if(!openAuthBtn || !logoutBtn || !authStatus || !rsvpBtn || !rsvpStatus) return;
+
+      const userKey = 'crb.event.user.v1';
+      const rsvpKey = 'crb.event.rsvp.v1';
+
+      function getUser(){
+        try{ return JSON.parse(localStorage.getItem(userKey) || 'null'); }
+        catch{ return null; }
+      }
+      function setUser(u){ localStorage.setItem(userKey, JSON.stringify(u)); }
+      function clearUser(){ localStorage.removeItem(userKey); }
+
+      function updateAuthUI(){
+        const user = getUser();
+        if(user && user.name){
+          authStatus.textContent = `ログイン中：${user.name}`;
+          openAuthBtn.style.display = 'none';
+          logoutBtn.style.display = 'inline-flex';
+        }else{
+          authStatus.textContent = '未ログイン';
+          openAuthBtn.style.display = 'inline-flex';
+          logoutBtn.style.display = 'none';
+        }
+      }
+      function updateRsvpUI(){
+        const joined = localStorage.getItem(rsvpKey) === 'joined';
+        rsvpStatus.textContent = joined ? '参加登録済み' : '未登録';
+      }
+
+      openAuthBtn.addEventListener('click', () => {
+        const name = prompt('表示名を入力してください（端末内のみ保存）');
+        if(!name) return;
+        setUser({ name: String(name).trim(), at: Date.now() });
+        updateAuthUI();
+      });
+
+      logoutBtn.addEventListener('click', () => {
+        clearUser();
+        updateAuthUI();
+      });
+
+      rsvpBtn.addEventListener('click', () => {
+        const user = getUser();
+        if(!user || !user.name){
+          alert('参加記録にはログインが必要です');
+          return;
+        }
+        localStorage.setItem(rsvpKey, 'joined');
+        updateRsvpUI();
+      });
+
+      // 初期反映
+      updateAuthUI();
+      updateRsvpUI();
+    })();
+
 </script>
 <dialog id="auth" style="max-width:560px;width:92vw;border:none;border-radius:16px;padding:0;box-shadow:0 20px 60px rgba(0,0,0,.25)">
   <form method="dialog" style="padding:18px 18px 14px">
