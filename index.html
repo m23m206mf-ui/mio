@@ -661,6 +661,9 @@
       margin-top:22px;
     }
   </style>
+  <!-- Firebase (for real login) -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 </head>
 <body>
   <!-- ナビゲーション -->
@@ -1692,69 +1695,96 @@ save();
   
     // ===== Riverlight event: Auth (local) + RSVP (per user, local) + countdown (optional) =====
 // ※ 学内のデモ用：ID/パスワードと参加記録は「この端末・このURL」の localStorage に保存されます。
-const usersKey   = 'crb.auth.users.v1';
-const sessionKey = 'crb.auth.session.v1';
-const eventKey   = 'crb.event.riverlight.rsvp.v1';
 
-function loadUsers(){ try{ return JSON.parse(localStorage.getItem(usersKey) || '[]') }catch{ return [] } }
-function saveUsers(users){ localStorage.setItem(usersKey, JSON.stringify(users||[])); }
-function loadSession(){ try{ return JSON.parse(localStorage.getItem(sessionKey) || 'null') }catch{ return null } }
-function saveSession(s){ localStorage.setItem(sessionKey, JSON.stringify(s)); }
+/* =========================
+   Real Login (Firebase Auth)
+   - Keeps the existing UI (<dialog id="auth">) and existing features.
+   - Works on GitHub Pages (static) but needs a Firebase project.
+   - NOTE: Fill firebaseConfig below, otherwise login will show an error.
+========================= */
 
-function buf2hex(buffer){
-  const bytes = new Uint8Array(buffer);
-  return [...bytes].map(b=>b.toString(16).padStart(2,'0')).join('');
+const firebaseConfig = {
+  apiKey: "",            // TODO
+  authDomain: "",        // TODO 例: your-project.firebaseapp.com
+  projectId: "",         // TODO
+  appId: ""              // TODO
+  // measurementId: ""    // 任意
+};
+
+let fbApp = null;
+let fbAuth = null;
+
+function initFirebaseAuth(){
+  if(fbAuth) return fbAuth;
+  if(!window.firebase || !firebaseConfig || !firebaseConfig.apiKey){
+    // Firebase未設定
+    return null;
+  }
+  try{
+    fbApp = firebase.initializeApp(firebaseConfig);
+  }catch(e){
+    // すでに初期化済みのとき
+    fbApp = firebase.app();
+  }
+  fbAuth = firebase.auth();
+  // サインイン状態をブラウザに保持（GitHub PagesでもOK）
+  fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
+  return fbAuth;
 }
-async function sha256(str){
-  const enc = new TextEncoder().encode(str);
-  const hash = await crypto.subtle.digest('SHA-256', enc);
-  return buf2hex(hash);
-}
 
-function uid(){ return 'u_' + Math.random().toString(16).slice(2) + Date.now().toString(16); }
-function salt(){ return Math.random().toString(16).slice(2) + Math.random().toString(16).slice(2); }
+function mapFirebaseUser(u){
+  if(!u) return null;
+  return {
+    uid: u.uid,
+    id: u.email || '',
+    name: u.displayName || (u.email ? u.email.split('@')[0] : 'ユーザー')
+  };
+}
 
 async function registerLocal(id, name, pw, pw2){
   id = (id||'').trim();
   name = (name||'').trim();
-  if(!id) throw new Error('ログインIDを入力してください。');
+  if(!id) throw new Error('メールアドレスを入力してください。');
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(id)) throw new Error('メールアドレスの形式が正しくありません。');
   if(!name) throw new Error('表示名を入力してください。');
   if(!pw) throw new Error('パスワードを入力してください。');
+  if(pw.length < 6) throw new Error('パスワードは6文字以上にしてください。');
   if(pw !== pw2) throw new Error('確認用パスワードが一致しません。');
 
-  const users = loadUsers();
-  if(users.some(u=>u.id === id)) throw new Error('このIDは既に使われています。');
+  const auth = initFirebaseAuth();
+  if(!auth) throw new Error('Firebase設定が未入力です。firebaseConfig を埋めてください。');
 
-  const s = salt();
-  const hash = await sha256(pw + '|' + s);
-  const u = { uid: uid(), id, name, salt: s, hash };
-  users.push(u);
-  saveUsers(users);
-  saveSession({ uid: u.uid });
-  return u;
+  const cred = await auth.createUserWithEmailAndPassword(id, pw);
+  if(cred.user){
+    await cred.user.updateProfile({ displayName: name });
+  }
+  return mapFirebaseUser(cred.user);
 }
 
 async function loginLocal(id, pw){
   id = (id||'').trim();
-  if(!id) throw new Error('ログインIDを入力してください。');
+  if(!id) throw new Error('メールアドレスを入力してください。');
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(id)) throw new Error('メールアドレスの形式が正しくありません。');
   if(!pw) throw new Error('パスワードを入力してください。');
-  const users = loadUsers();
-  const u = users.find(x=>x.id === id);
-  if(!u) throw new Error('このIDは登録されていません。');
-  const hash = await sha256(pw + '|' + u.salt);
-  if(hash !== u.hash) throw new Error('パスワードが違います。');
-  saveSession({ uid: u.uid });
-  return u;
+
+  const auth = initFirebaseAuth();
+  if(!auth) throw new Error('Firebase設定が未入力です。firebaseConfig を埋めてください。');
+
+  const cred = await auth.signInWithEmailAndPassword(id, pw);
+  return mapFirebaseUser(cred.user);
 }
 
 function currentUser(){
-  const s = loadSession();
-  if(!s || !s.uid) return null;
-  const users = loadUsers();
-  return users.find(u=>u.uid === s.uid) || null;
+  const auth = initFirebaseAuth();
+  if(!auth) return null;
+  return mapFirebaseUser(auth.currentUser);
 }
-function logoutLocal(){ saveSession(null); }
 
+async function logoutLocal(){
+  const auth = initFirebaseAuth();
+  if(!auth) return;
+  await auth.signOut();
+}
 // RSVP per user (local)
 function loadEventRsvp(){ try{ return JSON.parse(localStorage.getItem(eventKey) || '{}') }catch{ return {} } }
 function saveEventRsvp(v){ localStorage.setItem(eventKey, JSON.stringify(v||{})) }
@@ -1799,6 +1829,9 @@ function renderEventRsvp(){
 }
 
 // Auth modal wiring
+// Firebase: keep UI in sync even when page reloads
+try{ const __a = initFirebaseAuth(); if(__a){ __a.onAuthStateChanged(()=>{ try{ renderAuth(); renderEventRsvp(); }catch{} }); } }catch{}
+
 const authDlg = document.getElementById('auth');
 const openAuthBtn = document.getElementById('openAuthBtn');
 if(openAuthBtn && authDlg){
@@ -1857,19 +1890,29 @@ if(registerBtn){
   });
 }
 
+
 const forgetBtn = document.getElementById('forgetAuthBtn');
 if(forgetBtn){
-  forgetBtn.addEventListener('click', ()=>{
-    if(!confirm('この端末に保存されたアカウント情報を全削除します。よろしいですか？')) return;
-    localStorage.removeItem(usersKey);
-    localStorage.removeItem(sessionKey);
+  forgetBtn.addEventListener('click', async ()=>{
+    if(!confirm('アカウント情報を削除（またはログアウト）します。よろしいですか？')) return;
+
+    // Firebaseの「アカウント削除」は直前の再ログインが必要で失敗する場合があります。
+    // 失敗してもログアウトは行います。
+    try{
+      const auth = initFirebaseAuth();
+      const u = auth ? auth.currentUser : null;
+      if(u){
+        try{ await u.delete(); }catch(_e){}
+      }
+    }catch(_e){}
+
+    try{ await logoutLocal(); }catch(_e){}
     // RSVPは残す（必要なら消してもOK）
     renderAuth();
     renderEventRsvp();
-    setMsg('削除しました。');
+    setMsg('処理しました。');
   });
 }
-
 // RSVP button behavior (requires login)
 const rsvpBtn = document.getElementById('eventRsvpBtn');
 if(rsvpBtn){
