@@ -518,6 +518,137 @@
       .stats-row{align-items:flex-start}
       .stats-right{width:100%}
     }
+    /* ===== Riverlight Events (polished) ===== */
+    .event-wrap{ margin-top:24px; }
+    .event-title{ margin:8px 0 0; font-size:20px; letter-spacing:.02em; }
+    .event-lead{ margin:10px 0 0; color:var(--muted); font-size:13px; line-height:1.8; }
+    .event-badge{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:6px 12px;border-radius:999px;
+      background:linear-gradient(135deg,#22c55e,#0ea5e9);
+      color:#0b1120;font-weight:900;font-size:12px;
+      box-shadow:0 10px 22px rgba(14,165,233,0.22), 0 10px 22px rgba(34,197,94,0.18);
+      width:max-content;
+    }
+    .event-hero{
+      display:grid;
+      grid-template-columns:minmax(0,1.45fr) minmax(0,1.05fr);
+      gap:16px;
+      align-items:start;
+      padding:16px;
+      border-radius:22px;
+      border:1px solid var(--border);
+      background:radial-gradient(circle at top,#bbf7d033,transparent 60%), #ffffff;
+      box-shadow:0 16px 34px rgba(15,23,42,0.08);
+    }
+    @media (max-width:920px){ .event-hero{grid-template-columns:1fr} }
+    .event-cta-row{ display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+    .event-mini{ display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+    .event-countdown{
+      margin-top:12px;
+      border:1px solid #bfdbfe;
+      background:linear-gradient(135deg,#e0f2fe,#f0fdf4);
+      border-radius:16px;
+      padding:10px 12px;
+      display:flex;
+      align-items:baseline;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .event-countdown-label{ font-weight:800; font-size:12px; color:#0f172a; }
+    .event-countdown-time{ font-weight:900; font-size:18px; letter-spacing:.02em; }
+    .event-countdown-note{ font-size:12px; color:var(--muted); }
+
+    .event-hero-right{ display:flex; flex-direction:column; gap:12px; }
+    .event-poster{
+      border-radius:18px;
+      border:1px solid rgba(148,163,184,0.5);
+      background:linear-gradient(180deg,#0f172a,#020617);
+      color:#e5e7eb;
+      overflow:hidden;
+      box-shadow:0 18px 40px rgba(15,23,42,0.24);
+    }
+    .event-poster-top{
+      display:flex; align-items:center; gap:10px;
+      padding:12px 12px 10px;
+      border-bottom:1px solid rgba(148,163,184,0.25);
+      background:radial-gradient(circle at 20% 0%,rgba(34,197,94,0.35),transparent 55%);
+    }
+    .event-poster-mark{
+      width:34px;height:34px;border-radius:12px;
+      display:grid;place-items:center;
+      font-weight:900;color:#0b1120;
+      background:linear-gradient(135deg,#22c55e,#38bdf8);
+      box-shadow:0 10px 18px rgba(34,197,94,0.25);
+    }
+    .event-poster-body{ padding:12px; display:flex; flex-direction:column; gap:8px; }
+    .event-poster-line{ font-size:13px; color:#e5e7eb; line-height:1.6; }
+    .event-poster-foot{
+      display:flex; gap:8px; flex-wrap:wrap;
+      padding:10px 12px 12px;
+      border-top:1px solid rgba(148,163,184,0.25);
+    }
+    .event-rsvp-mini{
+      background:#ffffff;
+      border-radius:18px;
+      border:1px solid var(--border);
+      padding:12px;
+    }
+    .event-rsvp-mini-title{ font-weight:800; font-size:13px; margin-bottom:4px; }
+
+    .event-grid{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0,1fr));
+      gap:12px;
+    }
+    @media (max-width:920px){ .event-grid{grid-template-columns:1fr} }
+    .event-card{
+      border:1px solid var(--border);
+      border-radius:18px;
+      background:#ffffff;
+      padding:12px;
+      box-shadow:0 14px 28px rgba(15,23,42,0.06);
+    }
+    .event-card-head{ display:flex; gap:10px; align-items:flex-start; }
+    .event-icon{
+      width:38px;height:38px;border-radius:14px;
+      display:grid;place-items:center;
+      background:var(--bg-soft);
+      border:1px solid rgba(191,219,254,0.8);
+      font-size:18px;
+      flex-shrink:0;
+    }
+    .event-card-title{ font-weight:900; font-size:14px; }
+    .event-card-body{ margin-top:10px; }
+    .event-kv{ display:flex; gap:8px; flex-wrap:wrap; }
+    .event-card-note{ margin-top:8px; font-size:12px; color:var(--muted); }
+    .event-split{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);
+      gap:12px;
+    }
+    @media (max-width:920px){ .event-split{grid-template-columns:1fr} }
+
+    .event-faq{
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:10px 12px;
+      background:#f9fafb;
+      margin-top:8px;
+    }
+    .event-faq summary{
+      cursor:pointer;
+      font-weight:800;
+      font-size:13px;
+      color:#0f172a;
+      list-style:none;
+    }
+    .event-faq summary::-webkit-details-marker{display:none}
+    .event-faq-body{ margin-top:8px; font-size:13px; color:var(--muted); line-height:1.7; }
+
 
     /* フッター */
     footer{
@@ -675,61 +806,170 @@
     </section>
 
 
+    
     <!-- Riverlight イベント -->
-    <section class="info-section" id="events" aria-label="Riverlight イベント">
-      <div class="info-card">
-        <div class="info-title">Riverlight イベント（企画）</div>
-        <div class="info-body">
-          「大学は川のように学生を育てて流す。私たち学生は川の波として海へ向かう」——
-          その流れに小さな灯りをともす活動として、学内で本の価値を伝えるイベントを企画しています。
+    <section id="events" class="event-wrap" aria-label="Riverlight イベント">
+      <div class="event-hero">
+        <div class="event-hero-left">
+          <div class="event-badge">Riverlight</div>
+          <h2 class="event-title">物と知識の価値を伝える、学内イベント</h2>
+          <p class="event-lead">
+            「大学は川のように学生を育てて流す。私たち学生は川の波として海へ向かう」——
+            この活動が小さな灯りとなり、本・知識の価値を伝え続けます。
+          </p>
+
+          <div class="event-cta-row">
+            <button class="btn primary" type="button" id="eventRsvpBtn">参加する（記録）</button>
+            <a class="btn ghost" href="#eventHow">参加方法</a>
+            <a class="btn ghost" href="#eventRules">注意事項</a>
+          </div>
+
+          <div class="event-countdown" id="eventCountdown" hidden>
+            <div class="event-countdown-label">開催まで</div>
+            <div class="event-countdown-time" id="eventCountdownTime">--</div>
+            <div class="event-countdown-note" id="eventCountdownNote"></div>
+          </div>
+
+          <div class="event-mini">
+            <div class="pill">学内開催</div>
+            <div class="pill">本 × 交流 × リユース</div>
+            <div class="pill">先着特典あり</div>
+          </div>
+
+          <div class="highlight-box" style="margin-top:10px">
+            目標：イベントをきっかけに、学内リユースの仕組み（回収・検品・価格の見える化）を育てていく
+          </div>
         </div>
-        <div class="highlight-box">
-          目的：本・知識の価値を再発見し、将来の学内リユース・プラットフォーム運営につなげる
+
+        <div class="event-hero-right">
+          <div class="event-poster">
+            <div class="event-poster-top">
+              <div class="event-poster-mark">RL</div>
+              <div>
+                <div style="font-weight:800">Riverlight</div>
+                <div class="muted" style="margin-top:2px">価値を伝えよう！</div>
+              </div>
+            </div>
+            <div class="event-poster-body">
+              <div class="event-poster-line"><strong>① 読書ブラインドボックス</strong>（¥1,000 / 3冊）</div>
+              <div class="event-poster-line"><strong>② ブックスワップ</strong>（1冊持参で交換）</div>
+              <div class="event-poster-line"><strong>特典</strong>：中国風ブックマーク（先着200名）</div>
+            </div>
+            <div class="event-poster-foot">
+              <span class="badge">会場で直接参加</span>
+              <span class="badge">ランダムで出会う</span>
+            </div>
+          </div>
+
+          <div class="event-rsvp-mini">
+            <div class="event-rsvp-mini-title">あなたの参加メモ（この端末）</div>
+            <div class="muted" id="eventRsvpStatus">未登録</div>
+            <div class="help" style="margin-top:6px">※ クリックで端末ローカルに参加記録（名前なし）を保存します。</div>
+          </div>
         </div>
       </div>
 
-      <div class="info-card">
-        <div class="info-title">イベント内容① 読書ブラインドボックス</div>
-        <div class="steps">
-          <div class="step-item"><div class="step-dot">¥</div><div><strong>価格：</strong>1,000円</div></div>
-          <div class="step-item"><div class="step-dot">📚</div><div><strong>内容：</strong>ランダムに本3冊が入ったブラインドボックス</div></div>
-          <div class="step-item"><div class="step-dot">✨</div><div><strong>特徴：</strong>多ジャンルの本が入るワクワク感</div></div>
-          <div class="step-item"><div class="step-dot">🧾</div><div><strong>購入方法：</strong>会場で直接購入</div></div>
-        </div>
-        <div class="help">※ 返品不可（ブラインドボックスの性質上）</div>
+      <div class="event-grid">
+        <article class="event-card">
+          <div class="event-card-head">
+            <div class="event-icon">📦</div>
+            <div>
+              <div class="event-card-title">読書ブラインドボックス</div>
+              <div class="muted">ランダムに本3冊。普段読まないジャンルとの出会い。</div>
+            </div>
+          </div>
+          <div class="event-card-body">
+            <div class="event-kv">
+              <span class="pill">価格：¥1,000</span>
+              <span class="pill">内容：本3冊</span>
+              <span class="pill">購入：会場で直接</span>
+            </div>
+            <div class="event-card-note">※ ブラインドボックスの性質上、返品不可。</div>
+          </div>
+        </article>
+
+        <article class="event-card">
+          <div class="event-card-head">
+            <div class="event-icon">🔁</div>
+            <div>
+              <div class="event-card-title">ブックスワップ</div>
+              <div class="muted">1冊持参 → ランダム交換。気軽に交流できる企画。</div>
+            </div>
+          </div>
+          <div class="event-card-body">
+            <div class="event-kv">
+              <span class="pill">条件：本1冊持参</span>
+              <span class="pill">ルール：一人1冊</span>
+              <span class="pill">方式：ランダム交換</span>
+            </div>
+            <div class="event-card-note">※ 交換本は状態良好のものに限ります。</div>
+          </div>
+        </article>
+
+        <article class="event-card">
+          <div class="event-card-head">
+            <div class="event-icon">🎁</div>
+            <div>
+              <div class="event-card-title">先着特典（200名）</div>
+              <div class="muted">オリジナル中国風ブックマークをプレゼント。</div>
+            </div>
+          </div>
+          <div class="event-card-body">
+            <div class="event-kv">
+              <span class="pill">特典：ブックマーク</span>
+              <span class="pill">先着：200名</span>
+              <span class="pill">受取：会場</span>
+            </div>
+            <div class="event-card-note">※ 数量に達し次第終了。</div>
+          </div>
+        </article>
       </div>
 
-      <div class="info-card">
-        <div class="info-title">イベント内容② ブックスワップ</div>
-        <div class="steps">
-          <div class="step-item"><div class="step-dot">1</div><div><strong>条件：</strong>自分の本1冊を持参して交換</div></div>
-          <div class="step-item"><div class="step-dot">2</div><div><strong>ルール：</strong>一人1冊・ランダム交換</div></div>
-          <div class="step-item"><div class="step-dot">🎁</div><div><strong>特典：</strong>オリジナル中国風ブックマーク（先着200名）</div></div>
+      <div class="event-split" id="eventHow">
+        <div class="info-card">
+          <div class="info-title">参加方法（シンプル）</div>
+          <div class="steps">
+            <div class="step-item"><div class="step-dot">1</div><div><strong>会場へ来る</strong><br>当日は学内の会場で直接参加できます。</div></div>
+            <div class="step-item"><div class="step-dot">2</div><div><strong>企画を選ぶ</strong><br>ブラインドボックス購入 or ブックスワップ参加。</div></div>
+            <div class="step-item"><div class="step-dot">3</div><div><strong>新しい本と出会う</strong><br>「ランダム」を楽しむのがポイントです。</div></div>
+          </div>
+          <div class="help">※ 開催日時・場所は決まり次第、SNS／サイトで告知します。</div>
         </div>
-        <div class="section" style="margin-top:10px">
-          <strong>注意事項</strong>
-          <ul style="margin:8px 0 0 18px; line-height:1.7; font-size:13px; color:var(--muted);">
-            <li>交換本は状態良好のものに限ります。</li>
-            <li>漫画や教科書などの種類は交換不可とします。</li>
-            <li>プレゼントは先着200名様限定です。</li>
-          </ul>
+
+        <div class="info-card" id="eventRules">
+          <div class="info-title">注意事項（トラブル防止）</div>
+          <details class="event-faq" open>
+            <summary>ブラインドボックスは返品できますか？</summary>
+            <div class="event-faq-body">できません（ブラインドボックスの性質上、返品不可）。</div>
+          </details>
+          <details class="event-faq">
+            <summary>交換に持っていく本の条件は？</summary>
+            <div class="event-faq-body">状態良好のものに限ります。漫画や教科書などの種類は交換不可とします。</div>
+          </details>
+          <details class="event-faq">
+            <summary>特典のブックマークは誰でももらえますか？</summary>
+            <div class="event-faq-body">先着200名様限定です。数量に達し次第終了します。</div>
+          </details>
+          <details class="event-faq">
+            <summary>このイベントのねらいは？</summary>
+            <div class="event-faq-body">本・知識の価値を再発見し、将来の学内リユース運営（回収・検品・価格の見える化）につなげます。</div>
+          </details>
         </div>
-        <div class="help" style="margin-top:8px">スローガン：<strong>Riverlightで、価値を伝えよう！</strong></div>
       </div>
 
-      <div class="info-card">
+      <div class="info-card" style="margin-top:14px">
         <div class="info-title">イベント後の展望</div>
         <div class="info-body">
-          イベント終了後もサイト機能を改善しつつ、読書ブラインドボックス企画は継続を検討します。
-          あわせて、イベントやプレゼントを通じて中国文化にも触れてもらい、学内の交流を広げたいと考えています。
+          今学期のイベントが終わった後も、サイトの機能をさらに改善していきます。
+          読書ブラインドボックスの企画は今後も続け、低価格で普段読まない本に出会える機会を増やしたいと考えています。
+          また、イベントやプレゼントを通して中国文化にも触れてもらい、学内の交流を広げていきます。
         </div>
         <div class="highlight-box">
-          参考：ドメイン「riverlightvlp.com」を取得済み（今後の発信拠点として活用予定）
+          発信拠点：<strong>riverlightvlp.com</strong>（ドメイン取得済み）
         </div>
       </div>
     </section>
-
-  </main>
+</main>
 
   <!-- 出品モーダル -->
   <dialog id="modal">
@@ -1442,6 +1682,62 @@ save();
       load(); render(); loadCoupons(); ensurePickupOptions();
       try{ if(localStorage.getItem(tosKey)!=='1'){ $('#tos').showModal(); } }catch{}
     })();
-  </script>
+  
+    // ===== Riverlight event: RSVP (local) + countdown (optional) =====
+    const eventKey = 'crb.event.riverlight.rsvp.v1';
+    function loadEventRsvp(){
+      try{ return JSON.parse(localStorage.getItem(eventKey) || '{}') }catch{ return {} }
+    }
+    function saveEventRsvp(v){ localStorage.setItem(eventKey, JSON.stringify(v||{})) }
+    function renderEventRsvp(){
+      const v = loadEventRsvp();
+      const el = document.getElementById('eventRsvpStatus');
+      if(!el) return;
+      if(v && v.joinedAt){
+        const d = new Date(v.joinedAt);
+        el.textContent = '参加予定として記録済み（' + d.toLocaleString('ja-JP') + '）';
+      }else{
+        el.textContent = '未登録';
+      }
+    }
+    const EVENT_DATE_ISO = ''; // 例: '2026-01-20T12:00:00+09:00'  ※未定なら空のままでOK
+    function renderCountdown(){
+      const box = document.getElementById('eventCountdown');
+      const timeEl = document.getElementById('eventCountdownTime');
+      const noteEl = document.getElementById('eventCountdownNote');
+      if(!box || !timeEl || !noteEl) return;
+      if(!EVENT_DATE_ISO){ box.hidden = true; noteEl.textContent = '開催日時は確定次第、サイト/SNSで告知します。'; return; }
+      const target = new Date(EVENT_DATE_ISO).getTime();
+      const now = Date.now();
+      const diff = target - now;
+      if(diff <= 0){
+        box.hidden = false;
+        timeEl.textContent = '開催中 / 終了';
+        noteEl.textContent = '会場での参加をお待ちしています。';
+        return;
+      }
+      const sec = Math.floor(diff/1000);
+      const dd = Math.floor(sec/86400);
+      const hh = Math.floor((sec%86400)/3600);
+      const mm = Math.floor((sec%3600)/60);
+      box.hidden = false;
+      timeEl.textContent = `${dd}日 ${hh}時間 ${mm}分`;
+      noteEl.textContent = '※ この表示は端末の時刻を使っています。';
+    }
+    const rsvpBtn = document.getElementById('eventRsvpBtn');
+    if(rsvpBtn){
+      rsvpBtn.addEventListener('click', ()=>{
+        const v = loadEventRsvp();
+        if(v && v.joinedAt){
+          if(!confirm('参加記録を解除しますか？')) return;
+          saveEventRsvp({});
+        }else{
+          saveEventRsvp({ joinedAt: Date.now() });
+        }
+        renderEventRsvp();
+      });
+    }
+
+</script>
 </body>
 </html>
