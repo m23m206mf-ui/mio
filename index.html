@@ -863,7 +863,14 @@
 
           <div class="event-rsvp-mini">
             <div class="event-rsvp-mini-title">あなたの参加メモ（この端末）</div>
-            <div class="muted" id="eventRsvpStatus">未登録</div>
+            
+            <div class="event-auth-row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0 2px">
+              <span class="muted" id="authStatus">未ログイン</span>
+              <button class="btn ghost" type="button" id="openAuthBtn">ログイン</button>
+              <button class="btn ghost" type="button" id="logoutBtn" style="display:none">ログアウト</button>
+            </div>
+            <div class="help" style="margin-top:4px">※ データは端末・URLごとに保存されます</div>
+<div class="muted" id="eventRsvpStatus">未登録</div>
             <div class="help" style="margin-top:6px">※ クリックで端末ローカルに参加記録（名前なし）を保存します。</div>
           </div>
         </div>
@@ -1683,61 +1690,275 @@ save();
       try{ if(localStorage.getItem(tosKey)!=='1'){ $('#tos').showModal(); } }catch{}
     })();
   
-    // ===== Riverlight event: RSVP (local) + countdown (optional) =====
-    const eventKey = 'crb.event.riverlight.rsvp.v1';
-    function loadEventRsvp(){
-      try{ return JSON.parse(localStorage.getItem(eventKey) || '{}') }catch{ return {} }
+    // ===== Riverlight event: Auth (local) + RSVP (per user, local) + countdown (optional) =====
+// ※ 学内のデモ用：ID/パスワードと参加記録は「この端末・このURL」の localStorage に保存されます。
+const usersKey   = 'crb.auth.users.v1';
+const sessionKey = 'crb.auth.session.v1';
+const eventKey   = 'crb.event.riverlight.rsvp.v1';
+
+function loadUsers(){ try{ return JSON.parse(localStorage.getItem(usersKey) || '[]') }catch{ return [] } }
+function saveUsers(users){ localStorage.setItem(usersKey, JSON.stringify(users||[])); }
+function loadSession(){ try{ return JSON.parse(localStorage.getItem(sessionKey) || 'null') }catch{ return null } }
+function saveSession(s){ localStorage.setItem(sessionKey, JSON.stringify(s)); }
+
+function buf2hex(buffer){
+  const bytes = new Uint8Array(buffer);
+  return [...bytes].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function sha256(str){
+  const enc = new TextEncoder().encode(str);
+  const hash = await crypto.subtle.digest('SHA-256', enc);
+  return buf2hex(hash);
+}
+
+function uid(){ return 'u_' + Math.random().toString(16).slice(2) + Date.now().toString(16); }
+function salt(){ return Math.random().toString(16).slice(2) + Math.random().toString(16).slice(2); }
+
+async function registerLocal(id, name, pw, pw2){
+  id = (id||'').trim();
+  name = (name||'').trim();
+  if(!id) throw new Error('ログインIDを入力してください。');
+  if(!name) throw new Error('表示名を入力してください。');
+  if(!pw) throw new Error('パスワードを入力してください。');
+  if(pw !== pw2) throw new Error('確認用パスワードが一致しません。');
+
+  const users = loadUsers();
+  if(users.some(u=>u.id === id)) throw new Error('このIDは既に使われています。');
+
+  const s = salt();
+  const hash = await sha256(pw + '|' + s);
+  const u = { uid: uid(), id, name, salt: s, hash };
+  users.push(u);
+  saveUsers(users);
+  saveSession({ uid: u.uid });
+  return u;
+}
+
+async function loginLocal(id, pw){
+  id = (id||'').trim();
+  if(!id) throw new Error('ログインIDを入力してください。');
+  if(!pw) throw new Error('パスワードを入力してください。');
+  const users = loadUsers();
+  const u = users.find(x=>x.id === id);
+  if(!u) throw new Error('このIDは登録されていません。');
+  const hash = await sha256(pw + '|' + u.salt);
+  if(hash !== u.hash) throw new Error('パスワードが違います。');
+  saveSession({ uid: u.uid });
+  return u;
+}
+
+function currentUser(){
+  const s = loadSession();
+  if(!s || !s.uid) return null;
+  const users = loadUsers();
+  return users.find(u=>u.uid === s.uid) || null;
+}
+function logoutLocal(){ saveSession(null); }
+
+// RSVP per user (local)
+function loadEventRsvp(){ try{ return JSON.parse(localStorage.getItem(eventKey) || '{}') }catch{ return {} } }
+function saveEventRsvp(v){ localStorage.setItem(eventKey, JSON.stringify(v||{})) }
+
+function renderAuth(){
+  const u = currentUser();
+  const el = document.getElementById('authStatus');
+  const openBtn = document.getElementById('openAuthBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  if(el) el.textContent = u ? `ログイン中：${u.name}` : '未ログイン';
+  if(openBtn) openBtn.style.display = u ? 'none' : '';
+  if(logoutBtn) logoutBtn.style.display = u ? '' : 'none';
+}
+
+function renderEventRsvp(){
+  const u = currentUser();
+  const v = loadEventRsvp();
+  const el = document.getElementById('eventRsvpStatus');
+  const rsvpBtn = document.getElementById('eventRsvpBtn');
+  if(!el) return;
+
+  if(!u){
+    // show generic status (if any exists on this device)
+    if(v && v.joinedAt && v.userName){
+      el.textContent = `参加記録：この端末に記録あり（${v.userName}）`;
+    }else{
+      el.textContent = '参加記録：未登録';
     }
-    function saveEventRsvp(v){ localStorage.setItem(eventKey, JSON.stringify(v||{})) }
-    function renderEventRsvp(){
-      const v = loadEventRsvp();
-      const el = document.getElementById('eventRsvpStatus');
-      if(!el) return;
-      if(v && v.joinedAt){
-        const d = new Date(v.joinedAt);
-        el.textContent = '参加予定として記録済み（' + d.toLocaleString('ja-JP') + '）';
-      }else{
-        el.textContent = '未登録';
-      }
+    if(rsvpBtn) rsvpBtn.textContent = 'ログインして参加登録';
+    return;
+  }
+
+  // logged in
+  if(v && v.joinedAt && v.userUid === u.uid){
+    const d = new Date(v.joinedAt);
+    el.textContent = `参加記録：登録済み（${d.toLocaleString('ja-JP')}）`;
+    if(rsvpBtn) rsvpBtn.textContent = '参加登録を解除';
+  }else{
+    el.textContent = '参加記録：未登録';
+    if(rsvpBtn) rsvpBtn.textContent = '参加登録（この端末）';
+  }
+}
+
+// Auth modal wiring
+const authDlg = document.getElementById('auth');
+const openAuthBtn = document.getElementById('openAuthBtn');
+if(openAuthBtn && authDlg){
+  openAuthBtn.addEventListener('click', ()=> authDlg.showModal());
+}
+const loginBtn = document.getElementById('loginBtn');
+const registerBtn = document.getElementById('registerBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+const msg = document.getElementById('authMsg');
+
+function setMsg(t){ if(msg) msg.textContent = t || ''; }
+
+if(logoutBtn){
+  logoutBtn.addEventListener('click', ()=>{
+    logoutLocal();
+    renderAuth();
+    renderEventRsvp();
+    setMsg('');
+    alert('ログアウトしました。');
+  });
+}
+
+if(loginBtn){
+  loginBtn.addEventListener('click', async ()=>{
+    try{
+      setMsg('');
+      const id = document.getElementById('auth_id')?.value;
+      const pw = document.getElementById('auth_pw')?.value;
+      await loginLocal(id, pw);
+      renderAuth();
+      renderEventRsvp();
+      setMsg('ログインしました。');
+      if(authDlg) authDlg.close();
+    }catch(e){
+      setMsg(e.message || String(e));
     }
-    const EVENT_DATE_ISO = ''; // 例: '2026-01-20T12:00:00+09:00'  ※未定なら空のままでOK
-    function renderCountdown(){
-      const box = document.getElementById('eventCountdown');
-      const timeEl = document.getElementById('eventCountdownTime');
-      const noteEl = document.getElementById('eventCountdownNote');
-      if(!box || !timeEl || !noteEl) return;
-      if(!EVENT_DATE_ISO){ box.hidden = true; noteEl.textContent = '開催日時は確定次第、サイト/SNSで告知します。'; return; }
-      const target = new Date(EVENT_DATE_ISO).getTime();
-      const now = Date.now();
-      const diff = target - now;
-      if(diff <= 0){
-        box.hidden = false;
-        timeEl.textContent = '開催中 / 終了';
-        noteEl.textContent = '会場での参加をお待ちしています。';
-        return;
-      }
-      const sec = Math.floor(diff/1000);
-      const dd = Math.floor(sec/86400);
-      const hh = Math.floor((sec%86400)/3600);
-      const mm = Math.floor((sec%3600)/60);
-      box.hidden = false;
-      timeEl.textContent = `${dd}日 ${hh}時間 ${mm}分`;
-      noteEl.textContent = '※ この表示は端末の時刻を使っています。';
+  });
+}
+
+if(registerBtn){
+  registerBtn.addEventListener('click', async ()=>{
+    try{
+      setMsg('');
+      const id = document.getElementById('auth_id')?.value;
+      const name = document.getElementById('auth_name')?.value;
+      const pw = document.getElementById('auth_pw')?.value;
+      const pw2 = document.getElementById('auth_pw2')?.value;
+      await registerLocal(id, name, pw, pw2);
+      renderAuth();
+      renderEventRsvp();
+      setMsg('登録してログインしました。');
+      if(authDlg) authDlg.close();
+    }catch(e){
+      setMsg(e.message || String(e));
     }
-    const rsvpBtn = document.getElementById('eventRsvpBtn');
-    if(rsvpBtn){
-      rsvpBtn.addEventListener('click', ()=>{
-        const v = loadEventRsvp();
-        if(v && v.joinedAt){
-          if(!confirm('参加記録を解除しますか？')) return;
-          saveEventRsvp({});
-        }else{
-          saveEventRsvp({ joinedAt: Date.now() });
-        }
-        renderEventRsvp();
-      });
+  });
+}
+
+const forgetBtn = document.getElementById('forgetAuthBtn');
+if(forgetBtn){
+  forgetBtn.addEventListener('click', ()=>{
+    if(!confirm('この端末に保存されたアカウント情報を全削除します。よろしいですか？')) return;
+    localStorage.removeItem(usersKey);
+    localStorage.removeItem(sessionKey);
+    // RSVPは残す（必要なら消してもOK）
+    renderAuth();
+    renderEventRsvp();
+    setMsg('削除しました。');
+  });
+}
+
+// RSVP button behavior (requires login)
+const rsvpBtn = document.getElementById('eventRsvpBtn');
+if(rsvpBtn){
+  rsvpBtn.addEventListener('click', ()=>{
+    const u = currentUser();
+    if(!u){
+      if(authDlg) authDlg.showModal();
+      return;
     }
+    const v = loadEventRsvp();
+    if(v && v.joinedAt && v.userUid === u.uid){
+      if(!confirm('参加登録を解除しますか？')) return;
+      saveEventRsvp({});
+    }else{
+      saveEventRsvp({ joinedAt: Date.now(), userUid: u.uid, userName: u.name });
+    }
+    renderEventRsvp();
+  });
+}
+
+// countdown (optional)
+const EVENT_DATE_ISO = ''; // 例: '2026-01-20T12:00:00+09:00'  ※未定なら空のままでOK
+function renderCountdown(){
+  const box = document.getElementById('eventCountdown');
+  const timeEl = document.getElementById('eventCountdownTime');
+  const noteEl = document.getElementById('eventCountdownNote');
+  if(!box || !timeEl || !noteEl) return;
+  if(!EVENT_DATE_ISO){ box.hidden = true; noteEl.textContent = '開催日時は確定次第、サイト/SNSで告知します。'; return; }
+  const target = new Date(EVENT_DATE_ISO).getTime();
+  const now = Date.now();
+  const diff = target - now;
+  if(diff <= 0){
+    box.hidden = false;
+    timeEl.textContent = '開催中 / 終了';
+    noteEl.textContent = '会場での参加をお待ちしています。';
+    return;
+  }
+  const sec = Math.floor(diff/1000);
+  const dd = Math.floor(sec/86400);
+  const hh = Math.floor((sec%86400)/3600);
+  const mm = Math.floor((sec%3600)/60);
+  box.hidden = false;
+  timeEl.textContent = `${dd}日 ${hh}時間 ${mm}分`;
+  noteEl.textContent = '※ この表示は端末の時刻を使っています。';
+}
+
+// initial render for event area
+renderAuth();
+renderEventRsvp();
+renderCountdown();
+setInterval(renderCountdown, 60*1000);
 
 </script>
+<dialog id="auth" style="max-width:560px;width:92vw;border:none;border-radius:16px;padding:0;box-shadow:0 20px 60px rgba(0,0,0,.25)">
+  <form method="dialog" style="padding:18px 18px 14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div style="font-weight:800;font-size:18px">イベント用ログイン（端末ローカル）</div>
+      <button class="btn ghost" value="cancel" aria-label="閉じる" type="submit">閉じる</button>
+    </div>
+    <div class="help" style="margin-top:8px">※ データは端末・URLごとに保存されます（学内デモ用）。</div>
+
+    <div style="margin-top:12px;display:grid;gap:10px">
+      <label class="field">
+        <div class="label">ログインID</div>
+        <input class="input" id="auth_id" autocomplete="username" placeholder="例：m23m206" />
+      </label>
+      <label class="field">
+        <div class="label">表示名（新規登録時）</div>
+        <input class="input" id="auth_name" autocomplete="nickname" placeholder="例：岡理大 太郎" />
+      </label>
+      <label class="field">
+        <div class="label">パスワード</div>
+        <input class="input" id="auth_pw" type="password" autocomplete="current-password" placeholder="8文字以上推奨" />
+      </label>
+      <label class="field">
+        <div class="label">パスワード（確認 / 新規登録時）</div>
+        <input class="input" id="auth_pw2" type="password" autocomplete="new-password" placeholder="確認用" />
+      </label>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+      <button class="btn primary" type="button" id="loginBtn">ログイン</button>
+      <button class="btn" type="button" id="registerBtn">新規登録</button>
+      <button class="btn ghost" type="button" id="forgetAuthBtn">端末の登録情報を削除</button>
+    </div>
+
+    <div class="help" id="authMsg" style="margin-top:10px;color:#b91c1c"></div>
+  </form>
+</dialog>
+
 </body>
 </html>
