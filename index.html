@@ -370,11 +370,6 @@
       color:var(--muted);
       background:#f9fafb;
     }
-    .sold{
-      background:#fef2f2;
-      border-color:#fecaca;
-      color:#b91c1c;
-    }
 
     dialog{
       border:none;
@@ -801,7 +796,7 @@
             <div>
               <strong>対面で受け渡し・精算</strong><br>
               図書館前や学生会館など事前に決めた場所・時間で対面受け渡しを行い、現金またはキャッシュレスで支払いをします。
-              取引完了後は、カードの「SOLDにする」でステータス管理もできます。
+          取引完了後は、各自で出品内容を整理してください。
             </div>
           </div>
         </div>
@@ -1387,7 +1382,6 @@ books = [
     pickup: '図書館前',
     coupon: '',
     createdAt: Date.now()-1000*60*60*24*3,
-    sold: false
   },
   {
     id: uid(),
@@ -1403,7 +1397,6 @@ books = [
     pickup: '学生会館',
     coupon: '',
     createdAt: Date.now()-1000*60*60*24*2,
-    sold: false
   },
   {
     id: uid(),
@@ -1419,7 +1412,6 @@ books = [
     pickup: '図書館前',
     coupon: '',
     createdAt: Date.now()-1000*60*60*24,
-    sold: false
   },
   {
     id: uid(),
@@ -1435,7 +1427,6 @@ books = [
     pickup: 'C1号館前',
     coupon: '',
     createdAt: Date.now()-1000*60*60*6,
-    sold: false
   },
   {
     id: uid(),
@@ -1451,7 +1442,6 @@ books = [
     pickup: '情報系実験室前',
     coupon: '',
     createdAt: Date.now()-1000*60*60*3,
-    sold: false
   },
   {
     id: uid(),
@@ -1467,7 +1457,6 @@ books = [
     pickup: '教育学部棟前',
     coupon: '',
     createdAt: Date.now()-1000*60*60,
-    sold: false
   }
 ];
 save();
@@ -1551,15 +1540,12 @@ save();
           <div class="muted">出品者：${b.seller || '-'}　連絡：${b.contact || '-'}</div>
           <div class="actions">
             <span class="badge">ID: ${b.id.slice(0,6)}</span>
-            ${b.sold?'<span class="badge sold">SOLD</span>':''}
             <button class="btn ghost" data-edit="1">編集</button>
-            <button class="btn warn" data-sold="1">${b.sold?'販売可能に戻す':'SOLDにする'}</button>
           </div>
         `;
         card.appendChild(t); card.appendChild(body);
         list.appendChild(card);
         $('[data-edit]', body).onclick = ()=> openEdit(b.id);
-        $('[data-sold]', body).onclick = ()=> toggleSold(b.id);
       }
     }
 
@@ -1592,11 +1578,10 @@ save();
       if(!v.image){ v.image = coverFromTitle(v.title, v.author); }
       if(v.pickup && !pickups.includes(v.pickup)){ pickups.push(v.pickup); savePickups(); }
       if(editingId){ const i = books.findIndex(x=>x.id===editingId); books[i] = {...books[i], ...v}; }
-      else{ books.unshift({id:uid(), createdAt:Date.now(), sold:false, paid:false, ...v}); }
+      else{ books.unshift({id:uid(), createdAt:Date.now(), paid:false, ...v}); }
       save(); render(); $('#modal').close();
     }
     function onDelete(e){ e.preventDefault(); if(!editingId) return; if(!confirm('この出品を削除しますか？')) return; books = books.filter(x=>x.id!==editingId); save(); render(); $('#modal').close(); }
-    function toggleSold(id){ const b = books.find(x=>x.id===id); b.sold=!b.sold; save(); render(); }
     function togglePaid(id){ const b = books.find(x=>x.id===id); if(!b) return; b.paid = !b.paid; save(); render(); }
     $('#genCoverBtn').onclick = ()=>{ const title = $('#f_title').value || 'BOOK'; const author = $('#f_author').value || ''; $('#f_img').value = coverFromTitle(title, author); };
     $('#suggestBtn').onclick = ()=>{
