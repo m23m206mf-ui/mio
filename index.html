@@ -801,7 +801,7 @@
             <div>
               <strong>対面で受け渡し・精算</strong><br>
               図書館前や学生会館など事前に決めた場所・時間で対面受け渡しを行い、現金またはキャッシュレスで支払いをします。
-              取引完了後は、カードの「SOLDにする」でステータス管理もできます。
+              取引完了後は、カードの「SOLDにする」「支払い済みにする」でステータス管理もできます。
             </div>
           </div>
         </div>
@@ -1552,14 +1552,19 @@ save();
           <div class="actions">
             <span class="badge">ID: ${b.id.slice(0,6)}</span>
             ${b.sold?'<span class="badge sold">SOLD</span>':''}
+            ${b.paid?'<span class="badge">支払い済み</span>':''}
             <button class="btn ghost" data-edit="1">編集</button>
-            <button class="btn warn" data-sold="1">${b.sold?'販売可能に戻す':'SOLDにする'}</button>
+            <button class="btn ghost" data-paid="1">${b.paid ? '未払いに戻す' : '支払い済みにする'}</button>
+            <button class="btn ghost" data-buyback="1" title="この書籍名で買取目安を表示">買取目安</button>
           </div>
         `;
         card.appendChild(t); card.appendChild(body);
         list.appendChild(card);
         $('[data-edit]', body).onclick = ()=> openEdit(b.id);
         $('[data-sold]', body).onclick = ()=> toggleSold(b.id);
+        const paidBtn = $('[data-paid]', body);
+        if(paidBtn) paidBtn.onclick = ()=> togglePaid(b.id);
+        $('[data-buyback]', body).onclick = ()=> openBuybackPrefill(b.title, b.condition);
       }
     }
 
@@ -1616,6 +1621,7 @@ save();
     }
     function estimateBuybackOld(base, condition){ const k = condFactorBuyback[condition] ?? condFactorBuyback['良い']; const est = base * k; return { mid: est, low: est*0.85, high: est*1.15 }; }
     function openBuyback(){ $('#bb_query').value = ''; $('#bb_cond').value = '良い'; $('#bb_result').innerHTML = ''; $('#buyback').showModal(); }
+    function openBuybackPrefill(title, condition='良い'){ $('#bb_query').value = title || ''; $('#bb_cond').value = condition || '良い'; $('#bb_result').innerHTML = ''; $('#buyback').showModal(); calcBuyback(); }
     function calcBuyback(){
       const q = $('#bb_query').value; const c = $('#bb_cond').value; const res = findListingBase(q); const result = $('#bb_result');
       if(!res){ result.innerHTML = '該当データが見つかりませんでした。<br>・同名の掲載データを追加するか、<br>・「参考定価データ(JSON)」を読み込んで再試行してください。'; return; }
